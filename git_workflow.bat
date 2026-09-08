@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 echo [1/5] Kontrola repozitare...
 git init || goto :error
-git remote set-url origin https://github.com/janvavrusa/janvavrusa.github.io.git 2>nul || git remote add origin https://github.com/janvavrusa/janvavrusa.github.io.git
+git remote set-url origin https://github.com/janvavrusa/portfolio.git 2>nul || git remote add origin https://github.com/janvavrusa/portfolio.git
 
 echo [2/5] Pridavani souboru do indexu...
 git add . || goto :error
