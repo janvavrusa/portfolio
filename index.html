@@ -13,6 +13,15 @@
       min-width: 100vw !important;
     }
 
+    .section-preview-rail:not(.is-visible),
+    .section-preview-toggle:not(.is-visible),
+    .site-info-panel:not(.is-visible),
+    .site-info-toggle:not(.is-visible) {
+      visibility: hidden !important;
+      pointer-events: none !important;
+      transform: translateY(24px);
+    }
+
   </style>
   <script>
     ! function(o, c) {
@@ -110,6 +119,21 @@
       </div>
     </div>
 
+
+    <a class="fuckai-intro">
+      <img src="images/fuckai.png" />
+    </a>
+
+    <a class="disclaimer">
+      <img src="images/disclaimer.png" />
+    </a>
+    
+
+    <div class="loading-connection-warning" data-loading-connection-warning role="alert" aria-live="assertive" aria-hidden="true">
+      <strong>Slow connection detected</strong>
+      <span><br /> For a better experience, please switch to Wi-Fi<br />if you are on mobile data / choose a faster connection.</span>
+    </div>
+
     <!-- Vlastní skript pro automatické dopočítání velikosti běžícího textu.
          Div je schválně skrytý přes CSS, ale skript uvnitř běží pořád a
          upravuje VŠECHNY .dynamic-text prvky na stránce (i ty viditelné níže). -->
@@ -181,12 +205,19 @@
           { src: 'images/mini_zahradni_ucebna.webp', className: 'zahradniucebna' },
           { src: 'images/mini_Kolonizacni_Parez.webp', className: 'KolonizacniParez' },
           { src: 'images/mini_RD_Dobrovskeho_48.webp', className: 'RDDobrovskeho48' },
-          { src: 'images/mini_zs_ant_hill.webp', className: 'zsanthill' }
+          { src: 'images/mini_zs_ant_hill.webp', className: 'zsanthill' },
+          { src: 'images/mini_Kaple_Serak.webp', className: 'miniKapleSerak' },
         ];
 
         const marquee = document.getElementById('loading-marquee');
         const loadingCarousel = document.querySelector('.loading-carousel');
         const backgroundVideo = document.querySelector('.na-tac-obrazovka video');
+        const itemsPerRow = Math.ceil(images.length / 2);
+        const rowImages = [
+          images.slice(0, itemsPerRow),
+          images.slice(itemsPerRow)
+        ];
+        while (rowImages[1].length < itemsPerRow) rowImages[1].push(images[0]);
 
         const waitForBackgroundVideo = () => new Promise((resolve) => {
           if (!backgroundVideo) {
@@ -212,8 +243,8 @@
           if (!marquee) return;
 
           const viewportHeight = window.innerHeight || 900;
-          const targetRows = 6;
           const forcescaleGap = 0.25;
+          const targetRows = 6;
           const rowHeight = (1 + forcescaleGap) * viewportHeight / (targetRows);
           const squareSize = rowHeight; 
           const itemGap = squareSize * 0.2;
@@ -239,7 +270,8 @@
               const group = document.createElement('div');
               group.className = 'loading-marquee-track-group';
 
-              [...images, ...images, ...images].forEach(({ src, className }) => {
+              const uniqueRowImages = rowImages[i % rowImages.length];
+              [...uniqueRowImages, ...uniqueRowImages, ...uniqueRowImages].forEach(({ src, className }) => {
                 const item = document.createElement('div');
                 item.className = 'loading-marquee-item';
                 item.style.width = `${squareSize}px`;
@@ -302,9 +334,12 @@
         const size = stats.querySelector('[data-loading-size]');
         const speed = stats.querySelector('[data-loading-speed]');
         const downloaded = stats.querySelector('[data-loading-downloaded]');
+        const connectionWarning = document.querySelector('[data-loading-connection-warning]');
         const startedAt = performance.now();
         const siteSizeLabel = '274 MB';
         const wholeWebTargetBytes = 274 * 1024 * 1024;
+        const slowConnectionThreshold = 2 * 1024 * 1024;
+        const forceConnectionWarningPreview = true;
 
         const priorityAssetUrls = [...new Set([
           ...[...document.querySelectorAll('.loading-marquee-item img')].map((el) => el.src),
@@ -351,7 +386,12 @@
           setProgress(pageProgress, wholeWebRatio * 100);
           downloaded.textContent = formatBytes(downloadedBytes);
           size.textContent = siteSizeLabel;
-          speed.textContent = downloadedBytes ? `${formatBytes(downloadedBytes / elapsedSeconds)}/s` : 'calculating';
+          const downloadSpeed = downloadedBytes / elapsedSeconds;
+          const hasMeasuredSpeed = downloadedBytes > 0;
+          const showConnectionWarning = (hasMeasuredSpeed && downloadSpeed < slowConnectionThreshold);
+          speed.textContent = hasMeasuredSpeed ? `${formatBytes(downloadSpeed)}/s` : 'calculating';
+          connectionWarning?.classList.toggle('is-visible', showConnectionWarning);
+          connectionWarning?.setAttribute('aria-hidden', String(!showConnectionWarning));
         };
 
         const syncNativeResourceBytes = () => {
@@ -931,6 +971,8 @@
       if (!loadingScreen || !wrapper || !carousel) return;
 
       let released = false;
+      const minimumLoadingTime = 20000;
+      const loadingStartedAt = performance.now();
       const holdLoadingScreen = () => {
         if (released) return;
         loadingScreen.style.display = 'block';
@@ -964,6 +1006,10 @@
         await Promise.all(sectionImages.map(waitForImage));
         const previewImages = [...document.querySelectorAll('.section-preview img[data-src], .section-preview img[src]')];
         await Promise.all(previewImages.map(waitForImage));
+        const remainingLoadingTime = minimumLoadingTime - (performance.now() - loadingStartedAt);
+        if (remainingLoadingTime > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, remainingLoadingTime));
+        }
         released = true;
         holdObserver.disconnect();
         wrapper.style.display = 'block';
@@ -985,7 +1031,6 @@
           loadingScreen.addEventListener('transitionend', (event) => {
             if (event.propertyName === 'opacity') finishRelease();
           }, { once: true });
-          window.setTimeout(finishRelease, 1000);
         });
       };
 
