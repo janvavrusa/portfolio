@@ -233,14 +233,14 @@ a:hover {
   .fuckai-intro {
     left: 50%;
     top: 22%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0.5);
   }
 
   .disclaimer {
     right: auto;
     left: 50%;
     top: 82%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0.5);
   }
 }
 
